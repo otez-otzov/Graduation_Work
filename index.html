@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <title>Анализ посещаемости здания</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: #f7f9fc;
+      color: #333;
+    }
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      border-radius: 12px;
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 25px;
+      font-weight: 600;
+    }
+    .form-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    label, select, input {
+      font-size: 1rem;
+      margin-right: 12px;
+      margin-bottom: 15px;
+    }
+    select, input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .section {
+      margin-top: 35px;
+      padding-top: 25px;
+      border-top: 1px solid #eee;
+    }
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-weight: 600;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    h3 {
+      color: #34495e;
+      margin: 25px 0 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #e0e0e0;
+      padding: 12px 15px;
+      text-align: left;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .anomaly-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .anomaly-card {
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+      padding: 15px;
+      width: 100%;
+      max-width: 320px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .anomaly-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .anomaly-card.anomalous {
+      border-left: 5px solid #e74c3c;
+      background: linear-gradient(to right, #fff5f5, white);
+    }
+    .anomaly-card.normal {
+      border-left: 5px solid #2ecc71;
+      background: linear-gradient(to right, #f5fffa, white);
+    }
+    .anomaly-card h4 {
+      margin: 0 0 8px;
+      font-size: 1.2em;
+      color: #2c3e50;
+    }
+    .anomaly-card p {
+      margin: 5px 0;
+      font-size: 0.95em;
+    }
+    .anomaly-metrics {
+      background: rgba(0,0,0,0.03);
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    .method-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .method-icon {
+      font-size: 1.5em;
+    }
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 30px 0;
+      font-size: 1.2em;
+      color: #3498db;
+    }
+    .anomaly-box {
+      margin-bottom: 30px;
+      padding: 20px;
+      border-radius: 10px;
+      background: #f8fafc;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .plot-container {
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      height: 800px;
+    }
+    .no-anomaly {
+      text-align: center;
+      padding: 15px;
+      color: #7f8c8d;
+      font-style: italic;
+    }
+    .anomaly-legend {
+      display: flex;
+      gap: 15px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.9em;
+    }
+    .legend-color {
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-right: 15px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 200px;
+    }
+    .control-label {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: #2c3e50;
+    }
+    .range-slider {
+      width: 100%;
+    }
+    .control-value {
+      font-size: 0.85em;
+      color: #7f8c8d;
+      text-align: center;
+    }
+    .reset-btn {
+      background: #95a5a6;
+      align-self: flex-end;
+      height: 36px;
+    }
+    .reset-btn:hover {
+      background: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Анализ посещаемости здания</h1>
+
+    <div class="form-section">
+      <form id="walkForm">
+        <label for="startRoom">Начальная зона:</label>
+        <select id="startRoom" required>
+          <option value="Entrance">Entrance</option>
+          <option value="Hallway">Hallway</option>
+          <option value="Shop1">Shop1</option>
+          <option value="Shop2">Shop2</option>
+          <option value="Shop3">Shop3</option>
+          <option value="Shop4">Shop4</option>
+          <option value="Shop5">Shop5</option>
+          <option value="Shop6">Shop6</option>
+          <option value="FoodCourt">FoodCourt</option>
+          <option value="Toilets">Toilets</option>
+          <option value="Elevator">Elevator</option>
+          <option value="Stairs">Stairs</option>
+          <option value="Parking">Parking</option>
+          <option value="Office1">Office1</option>
+          <option value="Office2">Office2</option>
+          <option value="Kiosk1">Kiosk1</option>
+          <option value="Kiosk2">Kiosk2</option>
+          <option value="RestArea1">RestArea1</option>
+          <option value="RestArea2">RestArea2</option>
+          <option value="InfoDesk">InfoDesk</option>
+          <option value="Lounge1">Lounge1</option>
+          <option value="Lounge2">Lounge2</option>
+          <option value="MiniShop1">MiniShop1</option>
+          <option value="MiniShop2">MiniShop2</option>
+          <option value="Exit">Exit</option>
+        </select>
+
+        <label for="endRoom">Конечная зона (необязательно):</label>
+        <select id="endRoom">
+          <option value="">— не задано —</option>
+          <option value="Entrance">Entrance</option>
+          <option value="Hallway">Hallway</option>
+          <option value="Shop1">Shop1</option>
+          <option value="Shop2">Shop2</option>
+          <option value="Shop3">Shop3</option>
+          <option value="Shop4">Shop4</option>
+          <option value="Shop5">Shop5</option>
+          <option value="Shop6">Shop6</option>
+          <option value="FoodCourt">FoodCourt</option>
+          <option value="Toilets">Toilets</option>
+          <option value="Elevator">Elevator</option>
+          <option value="Stairs">Stairs</option>
+          <option value="Parking">Parking</option>
+          <option value="Office1">Office1</option>
+          <option value="Office2">Office2</option>
+          <option value="Kiosk1">Kiosk1</option>
+          <option value="Kiosk2">Kiosk2</option>
+          <option value="RestArea1">RestArea1</option>
+          <option value="RestArea2">RestArea2</option>
+          <option value="InfoDesk">InfoDesk</option>
+          <option value="Lounge1">Lounge1</option>
+          <option value="Lounge2">Lounge2</option>
+          <option value="MiniShop1">MiniShop1</option>
+          <option value="MiniShop2">MiniShop2</option>
+          <option value="Exit">Exit</option>
+        </select>
+
+        <label for="steps">Шагов (по умолчанию 10):</label>
+        <input type="number" id="steps" min="1" max="100" value="10" />
+
+        <button type="submit">Смоделировать путь</button>
+      </form>
+    </div>
+
+    <div id="loading" style="display:none;">
+      <div class="loader"></div>
+      <span>Анализируем данные...</span>
+    </div>
+
+    <div class="section" id="visualizationSection" style="display:none;">
+      <h2>Интерактивная визуализация маршрута</h2>
+
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-label">Размер узлов: <span id="nodeSizeValue">15</span></span>
+          <input type="range" id="nodeSizeSlider" min="5" max="30" value="15" class="range-slider">
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Толщина линий: <span id="lineWidthValue">4</span></span>
+          <input type="range" id="lineWidthSlider" min="1" max="10" value="4" class="range-slider">
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Размер текста: <span id="textSizeValue">12</span></span>
+          <input type="range" id="textSizeSlider" min="8" max="20" value="12" class="range-slider">
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Размер аномалий: <span id="anomalySizeValue">18</span></span>
+          <input type="range" id="anomalySizeSlider" min="10" max="30" value="18" class="range-slider">
+        </div>
+
+        <button class="reset-btn" id="resetSettingsBtn">Сбросить</button>
+      </div>
+
+      <div class="plot-container">
+        <div id="plotlyGraph" style="width:100%; height:100%;"></div>
+      </div>
+
+      <div class="anomaly-legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #3498db;"></div>
+          <span>Нормальный путь</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #FF5252;"></div>
+          <span>Аномалии (One-Class SVM)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #FFD740;"></div>
+          <span>Аномалии (Isolation Forest)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #7C4DFF;"></div>
+          <span>Аномалии (Gaussian)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="metricsSection" style="display:none;">
+      <h2>Метрики посещаемости зон</h2>
+      <table id="metricsTable">
+        <thead>
+          <tr>
+            <th>Зона</th>
+            <th>Количество посещений</th>
+            <th>Среднее время пребывания (сек.)</th>
+            <th>Плотность посещений</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="edgesSection" style="display:none;">
+      <h2>Переходы между зонами</h2>
+      <table id="edgesTable">
+        <thead>
+          <tr>
+            <th>Из зоны</th>
+            <th>В зону</th>
+            <th>Количество переходов</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="anomaliesSection" style="display:none;">
+      <h2>Обнаруженные аномалии</h2>
+
+      <div class="anomaly-box">
+        <div class="method-title">
+          <div class="method-icon">#</div>
+          <h3>One-Class SVM</h3>
+        </div>
+        <div id="ocsvmCards" class="anomaly-cards"></div>
+      </div>
+
+      <div class="anomaly-box">
+        <div class="method-title">
+          <div class="method-icon">#</div>
+          <h3>Isolation Forest</h3>
+        </div>
+        <div id="iforestCards" class="anomaly-cards"></div>
+      </div>
+
+      <div class="anomaly-box">
+        <div class="method-title">
+          <div class="method-icon">#</div>
+          <h3>Gaussian Anomaly Detection</h3>
+        </div>
+        <div id="gaussianCards" class="anomaly-cards"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('walkForm');
+    const loading = document.getElementById('loading');
+    const visualizationSection = document.getElementById('visualizationSection');
+    const metricsSection = document.getElementById('metricsSection');
+    const edgesSection = document.getElementById('edgesSection');
+    const anomaliesSection = document.getElementById('anomaliesSection');
+
+    // Позиции всех узлов
+    const nodePositions = {
+      'Entrance': [1, 3],
+      'Hallway': [3, 3],
+      'Shop1': [3, 5],
+      'Shop2': [5, 5],
+      'Shop3': [7, 5],
+      'Shop4': [9, 5],
+      'Shop5': [11, 5],
+      'Shop6': [13, 5],
+      'FoodCourt': [3, 1],
+      'Toilets': [5, 1],
+      'Elevator': [3, 7],
+      'Stairs': [5, 7],
+      'Parking': [7, 7],
+      'Office1': [9, 7],
+      'Office2': [11, 7],
+      'Exit': [15, 5],
+      'Kiosk1': [7, 1],
+      'Kiosk2': [8.5, 1],
+      'RestArea1': [10, 1],
+      'RestArea2': [11.5, 1],
+      'InfoDesk': [11.5, 3],
+      'Lounge1': [5, 3],
+      'Lounge2': [6.5, 3],
+      'MiniShop1': [8, 3],
+      'MiniShop2': [9.5, 3]
+    };
+
+    // Текущие параметры визуализации
+    let currentVisualizationParams = {
+      nodeSize: 15,
+      lineWidth: 4,
+      textSize: 12,
+      anomalySize: 18
+    };
+
+    // Настройки по умолчанию для графика
+    const defaultLayout = {
+      title: 'Интерактивный маршрут по зданию',
+      xaxis: { visible: false, range: [-1, 16] },
+      yaxis: {
+        visible: false,
+        scaleanchor: "x",
+        scaleratio: 1,
+        range: [-1, 8]
+      },
+      margin: { l: 20, r: 20, t: 40, b: 20 },
+      plot_bgcolor: '#f9f9f9',
+      hovermode: 'closest',
+      legend: {
+        orientation: 'h',
+        y: -0.2,
+        font: { size: 12 }
+      },
+      showlegend: true
+    };
+
+    // Инициализация элементов управления
+    const nodeSizeSlider = document.getElementById('nodeSizeSlider');
+    const lineWidthSlider = document.getElementById('lineWidthSlider');
+    const textSizeSlider = document.getElementById('textSizeSlider');
+    const anomalySizeSlider = document.getElementById('anomalySizeSlider');
+    const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+
+    const nodeSizeValue = document.getElementById('nodeSizeValue');
+    const lineWidthValue = document.getElementById('lineWidthValue');
+    const textSizeValue = document.getElementById('textSizeValue');
+    const anomalySizeValue = document.getElementById('anomalySizeValue');
+
+    // Обновление значений слайдеров
+    function updateSliderValues() {
+      nodeSizeValue.textContent = currentVisualizationParams.nodeSize;
+      lineWidthValue.textContent = currentVisualizationParams.lineWidth;
+      textSizeValue.textContent = currentVisualizationParams.textSize;
+      anomalySizeValue.textContent = currentVisualizationParams.anomalySize;
+
+      nodeSizeSlider.value = currentVisualizationParams.nodeSize;
+      lineWidthSlider.value = currentVisualizationParams.lineWidth;
+      textSizeSlider.value = currentVisualizationParams.textSize;
+      anomalySizeSlider.value = currentVisualizationParams.anomalySize;
+    }
+
+    // Сброс настроек к значениям по умолчанию
+    resetSettingsBtn.addEventListener('click', () => {
+      currentVisualizationParams = {
+        nodeSize: 15,
+        lineWidth: 4,
+        textSize: 12,
+        anomalySize: 18
+      };
+      updateSliderValues();
+
+      if (window.currentGraphData) {
+        drawInteractiveGraph(
+          window.currentGraphData.path,
+          window.currentGraphData.nodeVisitCounts,
+          window.currentGraphData.anomalies
+        );
+      }
+    });
+
+    // Обработчики для слайдеров
+    nodeSizeSlider.addEventListener('input', (e) => {
+      currentVisualizationParams.nodeSize = parseInt(e.target.value);
+      nodeSizeValue.textContent = currentVisualizationParams.nodeSize;
+      if (window.currentGraphData) {
+        drawInteractiveGraph(
+          window.currentGraphData.path,
+          window.currentGraphData.nodeVisitCounts,
+          window.currentGraphData.anomalies
+        );
+      }
+    });
+
+    lineWidthSlider.addEventListener('input', (e) => {
+      currentVisualizationParams.lineWidth = parseInt(e.target.value);
+      lineWidthValue.textContent = currentVisualizationParams.lineWidth;
+      if (window.currentGraphData) {
+        drawInteractiveGraph(
+          window.currentGraphData.path,
+          window.currentGraphData.nodeVisitCounts,
+          window.currentGraphData.anomalies
+        );
+      }
+    });
+
+    textSizeSlider.addEventListener('input', (e) => {
+      currentVisualizationParams.textSize = parseInt(e.target.value);
+      textSizeValue.textContent = currentVisualizationParams.textSize;
+      if (window.currentGraphData) {
+        drawInteractiveGraph(
+          window.currentGraphData.path,
+          window.currentGraphData.nodeVisitCounts,
+          window.currentGraphData.anomalies
+        );
+      }
+    });
+
+    anomalySizeSlider.addEventListener('input', (e) => {
+      currentVisualizationParams.anomalySize = parseInt(e.target.value);
+      anomalySizeValue.textContent = currentVisualizationParams.anomalySize;
+      if (window.currentGraphData) {
+        drawInteractiveGraph(
+          window.currentGraphData.path,
+          window.currentGraphData.nodeVisitCounts,
+          window.currentGraphData.anomalies
+        );
+      }
+    });
+
+    // Инициализация значений
+    updateSliderValues();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      loading.style.display = 'flex';
+      visualizationSection.style.display = 'none';
+      metricsSection.style.display = 'none';
+      edgesSection.style.display = 'none';
+      anomaliesSection.style.display = 'none';
+
+      const startRoom = document.getElementById('startRoom').value;
+      const endRoom = document.getElementById('endRoom').value || null;
+      const steps = parseInt(document.getElementById('steps').value, 10) || 10;
+
+      try {
+        const response = await fetch('/random-walk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start_room: startRoom, end_room: endRoom, steps: steps })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert('Ошибка: ' + (errorData.error || 'Неизвестная ошибка'));
+          loading.style.display = 'none';
+          return;
+        }
+
+        const data = await response.json();
+
+        const nodeVisitCounts = data.node_visit_count;
+
+        window.currentGraphData = {
+          path: data.path,
+          nodeVisitCounts: nodeVisitCounts,
+          anomalies: data.anomalies
+        };
+
+        // Отображение интерактивного графа
+        drawInteractiveGraph(data.path, nodeVisitCounts, data.anomalies);
+
+        // Показ визуализации
+        visualizationSection.style.display = 'block';
+
+        // Таблица метрик
+        const metricsTbody = document.querySelector('#metricsTable tbody');
+        metricsTbody.innerHTML = '';
+        data.metrics.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.zone}</td>
+            <td>${item.visit_count}</td>
+            <td>${item.avg_time_sec.toFixed(1)}</td>
+            <td>${(item.density * 100).toFixed(1)}%</td>
+          `;
+          metricsTbody.appendChild(tr);
+        });
+        metricsSection.style.display = 'block';
+
+        // Таблица переходов
+        const edgesTbody = document.querySelector('#edgesTable tbody');
+        edgesTbody.innerHTML = '';
+        for (const [edge, count] of Object.entries(data.edge_visit_counts)) {
+          const [from, to] = edge.split('-');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${from}</td>
+            <td>${to}</td>
+            <td>${count}</td>
+          `;
+          edgesTbody.appendChild(tr);
+        }
+        edgesSection.style.display = 'block';
+
+        // Аномалии
+        renderAnomalies('ocsvmCards', data.anomalies.one_class_svm, data.path, 'one_class_svm');
+        renderAnomalies('iforestCards', data.anomalies.isolation_forest, data.path, 'isolation_forest');
+        renderAnomalies('gaussianCards', data.anomalies.gaussian, data.path, 'gaussian');
+        anomaliesSection.style.display = 'block';
+
+      } catch (err) {
+        alert('Ошибка при запросе: ' + err.message);
+      }
+
+      loading.style.display = 'none';
+    });
+
+    // Функция для отрисовки интерактивного графа
+    function drawInteractiveGraph(path, nodeVisitCounts, anomalies) {
+      const nodeNames = Object.keys(nodePositions);
+
+      const x = [];
+      const y = [];
+      const text = [];
+      const sizes = [];
+      const colors = [];
+
+      // Сбор данных для узлов
+      nodeNames.forEach(name => {
+        x.push(nodePositions[name][0]);
+        y.push(nodePositions[name][1]);
+
+        const visits = nodeVisitCounts[name] || 0;
+        text.push(`${name}<br>Посещений: ${visits}`);
+
+        sizes.push(currentVisualizationParams.nodeSize + visits * 2);
+
+        colors.push(visits);
+      });
+
+      // Трассировка для узлов
+      const nodesTrace = {
+        x,
+        y,
+        text,
+        mode: 'markers+text',
+        type: 'scatter',
+        name: 'Зоны',
+        marker: {
+          size: sizes,
+          color: colors,
+          colorscale: 'Reds',
+          showscale: true,
+          colorbar: {
+            title: 'Посещений',
+            thickness: 15,
+            len: 0.8
+          },
+          opacity: 0.9
+        },
+        textposition: 'top center',
+        textfont: { size: currentVisualizationParams.textSize },
+        hoverinfo: 'text'
+      };
+
+      // Трассировка для пути
+      const pathCoords = path.map(name => nodePositions[name]);
+      const pathX = pathCoords.map(coord => coord[0]);
+      const pathY = pathCoords.map(coord => coord[1]);
+
+      const pathTrace = {
+        x: pathX,
+        y: pathY,
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: 'Путь',
+        line: {
+          color: '#3498db',
+          width: currentVisualizationParams.lineWidth,
+          shape: 'spline',
+          smoothing: 1.3
+        },
+        marker: {
+          size: 12,
+          color: '#3498db',
+          symbol: 'circle',
+          line: { width: 2, color: '#2980b9' }
+        },
+        hoverinfo: 'text',
+        text: path,
+        textposition: 'top right'
+      };
+
+      // Сбор всех трассировок
+      const traces = [nodesTrace, pathTrace];
+
+      traces.push(...createAnomalyTraces(anomalies, path));
+
+      // Обновление layout
+      const layout = {
+        ...defaultLayout,
+        height: 750,
+        width: document.querySelector('.plot-container').clientWidth,
+        title: `Маршрут из ${path[0]} (${path.length} шагов)`,
+        hoverlabel: {
+          bgcolor: '#fff',
+          font: { size: 14 }
+        }
+      };
+
+      Plotly.newPlot('plotlyGraph', traces, layout, {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        modeBarButtonsToAdd: [{
+          name: 'Увеличить узлы',
+          icon: Plotly.Icons.zoomin,
+          click: () => {
+            currentVisualizationParams.nodeSize += 2;
+            updateSliderValues();
+            drawInteractiveGraph(path, nodeVisitCounts, anomalies);
+          }
+        }]
+      });
+    }
+
+    // Создание трассировок для аномалий
+    function createAnomalyTraces(anomalyData, path) {
+      const anomalyTraces = [];
+      const anomalyColors = {
+        'one_class_svm': '#FF5252',
+        'isolation_forest': '#FFD740',
+        'gaussian': '#7C4DFF'
+      };
+
+      const anomalyNames = {
+        'one_class_svm': 'One-Class SVM',
+        'isolation_forest': 'Isolation Forest',
+        'gaussian': 'Gaussian'
+      };
+
+      Object.keys(anomalyData).forEach(method => {
+        const anomalyPoints = [];
+
+        anomalyData[method].forEach((isAnomaly, i) => {
+          if (isAnomaly === -1) {
+            const node = path[i];
+            if (nodePositions[node]) {
+              anomalyPoints.push({
+                x: nodePositions[node][0],
+                y: nodePositions[node][1],
+                step: i,
+                node: node,
+                method: method
+              });
+            }
+          }
+        });
+
+        if (anomalyPoints.length > 0) {
+          const trace = {
+            x: anomalyPoints.map(p => p.x),
+            y: anomalyPoints.map(p => p.y),
+            text: anomalyPoints.map(p =>
+              `${p.node}<br>Шаг: ${p.step}<br>Метод: ${anomalyNames[p.method]}`
+            ),
+            mode: 'markers',
+            type: 'scatter',
+            name: `Аномалии (${anomalyNames[method]})`,
+            marker: {
+              size: currentVisualizationParams.anomalySize,
+              color: anomalyColors[method],
+              symbol: 'x',
+              line: { width: 2 }
+            },
+            hoverinfo: 'text',
+            showlegend: true
+          };
+          anomalyTraces.push(trace);
+        }
+      });
+
+      return anomalyTraces;
+    }
+
+    // Функция для отображения аномалий в карточках
+    function renderAnomalies(containerId, preds, path, methodName) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      const methodTitles = {
+        'one_class_svm': 'One-Class SVM',
+        'isolation_forest': 'Isolation Forest',
+        'gaussian': 'Gaussian Anomaly Detection'
+      };
+
+      const methodIcons = {
+        'one_class_svm': '#',
+        'isolation_forest': '#',
+        'gaussian': '#'
+      };
+
+      let anomalyCount = 0;
+
+      preds.forEach((p, i) => {
+        if (p === -1) {
+          const zone = path[i];
+          const card = document.createElement('div');
+          card.classList.add('anomaly-card', 'anomalous');
+
+          card.innerHTML = `
+            <h4>${methodIcons[methodName]} Шаг ${i}: ${zone}</h4>
+            <p># Обнаружена аномалия</p>
+            <div class="anomaly-metrics">
+              <p><strong>Метод:</strong> ${methodTitles[methodName]}</p>
+              <p><strong>Позиция:</strong> (${nodePositions[zone]?.join(', ') || 'N/A'})</p>
+              <p><strong>Предыдущая зона:</strong> ${i > 0 ? path[i-1] : 'Начало'}</p>
+              <p><strong>Следующая зона:</strong> ${i < path.length-1 ? path[i+1] : 'Конец'}</p>
+            </div>
+          `;
+          container.appendChild(card);
+          anomalyCount++;
+        }
+      });
+
+      if (anomalyCount === 0) {
+        const noAnomaly = document.createElement('div');
+        noAnomaly.classList.add('anomaly-card', 'normal');
+        noAnomaly.innerHTML = `
+          <h4>${methodIcons[methodName]} ${methodTitles[methodName]}</h4>
+          <p>✅ Аномалий не обнаружено</p>
+          <div class="anomaly-metrics">
+            <p>Система не выявила подозрительных активностей в пути</p>
+          </div>
+        `;
+        container.appendChild(noAnomaly);
+      }
+    }
+  </script>
+</body>
+</html>
